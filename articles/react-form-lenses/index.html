@@ -1,0 +1,1060 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>Real World Lenses: TypeScript, React State Variables, and Forms</title>
+    <link href="prism.css" rel="stylesheet" />
+    <style>
+        body {
+            font-family: verdana, arial;
+            font-size: 90%;
+            line-height: 2;
+            margin: 2.5em;
+            background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADEAAAAcBAMAAAA6gErHAAAAMFBMVEXf39+1tbXg4OC/v7/Gxsrh4eHHx8rGxsbGxsrExMTDw8PGxsbDw8rExMq/v8q1tctsqyaSAAAAEHRSTlMACAAQMQA5MSkgGSkZIBAI107I3wAAAoNJREFUeF4V0t9rVEccxuF3ZjLtGmOZmXULRgNz9uiFvfqew7oJFmXCHjbZROlkw94IwilZYn4Ja7MkaaKCsAZLERLdprdJG9JCbwIRhHgT6EEKvbJpe99r7/oXuP4BL3weeLG6raWt206UL8JCnZmBD5X6tepQrVFd8evLloQkLYsdgII/55MUr0cmKC9Ku9P1oqSIsb5IqFzt5qJDtpXdkuxf44nJoue+/ys+2KTcC4ez39DmqF0HKFCqQQjXws47nkkHPmHEzhsHVgga2tS5yJKfmZ7QKWSZEIwdqYKfYqRQz3dnApab4Q6270HA3yQnXOUD0/AoH38L/BJbB2IPWZjmViJwUmG4X7PPtB0PZApgh5VOcX5NqSKpkRqCT34KHWQLhNJWJ/LsjyVtp2/MURD2f315F8zBsDsTt2CVfVsRA2N7CpYe7RglUhjL2076orWd4+YpKXA5XLEwDlzwHdJkyIvqMY+8sSgvexY52Cm7cRho0qx7+1UkgDzKC0C91bOfW65IitB9LK8mex51bHSZZilkvm+rewWUjZPB0NgJwlw6/NTKFmJ01Of/4Mv5yAL8wsY1X94bdAop6LN1fnX54mTMDfUCS7fjrsQ8GimQeyntZBKhQEpbrfYfLVmTEWshn/2nB1aOBM8jAKwVBwsauUPhoO5Pi83vWoxxJiVEQAfVbaVqkcPdUfrxeViDKMQhj3qbuS+SE/z9f4ru7+Ua2FsVFKCnvZEjFTuwuPXpDw6bv9WEKJR6AoDXgb6/gKHJS/cdkjkTA2JdQsfaAt9LIX02PuvQflIURR52CDBexP0zJuBk33/86Gx1Nmk329UkaTZXZpN77Wayeq9ZdR8AKlSbB1hHF9QAAAAASUVORK5CYII=);
+        }
+
+        p {
+            text-align: justify;
+        }
+
+        pre code {
+            font-size: 84%;
+        }
+
+        code {
+            background: #fff;
+        }
+    </style>
+
+    <style>
+        article form {
+            border: 1px solid #888;
+            padding: 20px;
+            background: #fff;
+        }
+
+        article label {
+            display: block;
+        }
+
+        article input {
+            margin: 4px;
+        }
+
+        article form pre {
+            line-height: 1.5;
+            background: #eee;
+            border: 1px solid #ddd;
+            border-radius: 14px;
+            padding: 14px;
+        }
+    </style>
+</head>
+
+<body>
+    <article>
+        <h1>
+            Real World Lenses: TypeScript, React State Variables, and Forms
+        </h1>
+        <p>
+            If you have heard of lenses before, you may have heard that they are
+            only useful in academic ivory-tower languages, like Haskell, because
+            these languages are overly restrictive and therefore require
+            convoluted solutions to problems that other programming languages
+            don't even have in the first place.
+        </p>
+        <p>
+            If you have not heard of lenses before, then hopefully you are
+            curious about what they are and why they are useful.
+        </p>
+        <p>
+            This article will show one use-case for lenses that is extremely
+            practical and useful, using an example that couldn't be more "real
+            world": a TypeScript React web-app containing a basic form. The
+            resulting code will use lenses, and if we were to compare it what we
+            would need to write without using lenses, then it is simpler, more
+            reliable, and more extensible.
+        </p>
+        <p>
+            I will explain soon what a lens is, but let's first start building
+            our app! It will be a React application containing a simple form.
+        </p>
+
+        <h2>Part 1 - Bare Minimum Form Functionality with Lenses</h2>
+
+        <p>
+            You will need at least basic familiarity with TypeScript and React
+            in order to understand and follow along with this article.
+        </p>
+
+        <p>
+            Here is the form we would like to create:
+        </p>
+
+        <h3>Form1 <small>(multiple onChange handlers)</small></h3>
+        <div id="form1">Loading Script...</div>
+
+        <p>
+            It has a field for the first name, a field for the last name, and a
+            submit button. It also has a character counter for both input fields
+            (which means that using controlled input fields is probably the way
+            to go). It has a "Submit" button that is disabled unless both input
+            fields are filled. We want to have a single <code
+            class="language-typescript">onSubmit</code>
+            prop that is called when the form is submitted that receives the
+            first name and last name as a payload.
+        </p>
+
+        <p>
+            We will write a React component for the form, using two state
+            variables to store the value of each field. Here is the code for the
+            above form (notice how it also renders its internal React state, to
+            help us understand its internals):
+        </p>
+
+<pre>
+<code class="language-typescript">
+interface Form1Props {
+    onSubmit: (firstName: string, lastName: string) =&gt; void;
+}
+
+interface Form1State {
+    firstName: string;
+    lastName: string;
+}
+
+class Form1 extends React.Component&lt;Form1Props, Form1State&gt; {
+    constructor(props: Form1Props) {
+        super(props);
+
+        this.state = {
+            firstName: &quot;&quot;,
+            lastName: &quot;&quot;
+        };
+    }
+
+    handleFirstNameChange = (e: React.ChangeEvent&lt;HTMLInputElement&gt;) =&gt; {
+        this.setState({
+            firstName: e.target.value
+        });
+    }
+
+    handleLastNameChange = (e: React.ChangeEvent&lt;HTMLInputElement&gt;) =&gt; {
+        this.setState({
+            lastName: e.target.value
+        });
+    }
+
+    handleSubmitClick = (e: React.MouseEvent) =&gt; {
+        e.preventDefault();
+        this.props.onSubmit(this.state.firstName, this.state.lastName);
+    }
+
+    render() {
+        return (
+            &lt;form&gt;
+                &lt;label&gt;
+                    First Name:
+                    &lt;input
+                        type=&quot;text&quot;
+                        value={this.state.firstName}
+                        onChange={this.handleFirstNameChange}
+                    /&gt;
+                    ({this.state.firstName.length} chars)
+                &lt;/label&gt;
+                &lt;label&gt;
+                    Last Name:
+                    &lt;input
+                        type=&quot;text&quot;
+                        value={this.state.lastName}
+                        onChange={this.handleLastNameChange}
+                    /&gt;
+                    ({this.state.lastName.length} chars)
+                &lt;/label&gt;
+                &lt;input
+                    type=&quot;submit&quot;
+                    disabled={this.state.firstName === &quot;&quot; || this.state.lastName === &quot;&quot;}
+                    onClick={this.handleSubmitClick}
+                /&gt;
+                &lt;pre&gt;
+                    {JSON.stringify(this.state, null, 2)}
+                &lt;/pre&gt;
+            &lt;/form&gt;
+        );
+    }
+}
+</code>
+</pre>
+
+        <p>
+            The big problem with the above code, is that it contains a major
+            Don't-Repeat-Yourself (<a
+            href="https://en.wikipedia.org/wiki/Don%27t_repeat_yourself">DRY</a>)
+            violation. The two event handlers <code
+            class="language-typescript">handleFirstNameChange</code> and
+            <code class="language-typescript">handleLastNameChange</code> are
+            very similar, basically one copy & pasted from the other, with only
+            the field name changed. Our form only has two fields, but if it had
+            many, then this would result in a lot of error-prone duplicated
+            boiler-plate code.
+        </p>
+
+        <p>
+            Let's try to do better.
+        </p>
+
+        <p>
+            The official React docs have a solution to this, in the section <a
+            href="https://reactjs.org/docs/forms.html#handling-multiple-inputs">Handling
+            Multiple Inputs</a>. The idea is to use a single event handler,
+            called <code class="language-typescript">handleInputChange</code>,
+            that updates the appropriate state variable, based on which input
+            element was changed.
+        </p>
+
+        <p>
+            Here is our new version of the Component, using this technique:
+        </p>
+
+<pre>
+<code class="language-typescript">
+interface Form2Props {
+    onSubmit: (firstName: string, lastName: string) =&gt; void;
+}
+
+interface Form2State {
+    firstName: string;
+    lastName: string;
+}
+
+class Form2 extends React.Component&lt;Form2Props, Form2State&gt; {
+    constructor(props: Form2Props) {
+        super(props);
+
+        this.state = {
+            firstName: &quot;&quot;,
+            lastName: &quot;&quot;
+        };
+    }
+
+    handleInputChange = (e: React.ChangeEvent&lt;HTMLInputElement&gt;) =&gt; {
+        this.setState({
+            [e.target.name]: e.target.value
+        } as any);
+    }
+
+    handleSubmitClick = (e: React.MouseEvent) =&gt; {
+        e.preventDefault();
+        this.props.onSubmit(this.state.firstName, this.state.lastName);
+    }
+
+    render() {
+        return (
+            &lt;form&gt;
+                &lt;label&gt;
+                    First Name:
+                    &lt;input
+                        name=&quot;firstName&quot;
+                        type=&quot;text&quot;
+                        value={this.state.firstName}
+                        onChange={this.handleInputChange}
+                    /&gt;
+                    ({this.state.firstName.length} chars)
+                &lt;/label&gt;
+                &lt;label&gt;
+                    Last Name:
+                    &lt;input
+                        name=&quot;lastName&quot;
+                        type=&quot;text&quot;
+                        value={this.state.lastName}
+                        onChange={this.handleInputChange}
+                    /&gt;
+                    ({this.state.lastName.length} chars)
+                &lt;/label&gt;
+                &lt;input
+                    type=&quot;submit&quot;
+                    disabled={this.state.firstName === &quot;&quot; || this.state.lastName === &quot;&quot;}
+                    onClick={this.handleSubmitClick}
+                /&gt;
+                &lt;pre&gt;
+                    {JSON.stringify(this.state, null, 2)}
+                &lt;/pre&gt;
+            &lt;/form&gt;
+        );
+    }
+}
+</code>
+</pre>
+
+        <p>
+            And here is the result of the above code, which has identical
+            behaviour to our first version:
+        </p>
+
+        <h3>Form2 <small>(single onChange handler - not type safe)</small></h3>
+        <div id="form2">Loading Script...</div>
+
+        <p>
+            But the code of Form2 has a problem that is even worse than the DRY
+            violation of our first version: it bypasses the safety of the type
+            checker. Notice how our event handler must use an <code
+            class="language-typescript">any</code> assertion, since we are
+            dynamically accessing a field of our state object, based on a
+            runtime string value.
+        </p>
+
+        <p>
+            Anytime you use <code class="language-typescript">any</code> (also
+            sometimes called a cast), you are giving up safety: the compiler
+            won't be able to detect if you have made typos, editor autocomplete
+            will no longer work, refactoring will be more difficult, and new
+            programmers will find it more difficult to understand the code and
+            to modify it.
+        </p>
+
+        <p>
+            Can we eliminate the boilerplate, keep our code DRY, and still
+            maintain type safety? One way to do so is to use lenses.
+        </p>
+
+        <p>
+            Let's try to step back and understand how the code for our second
+            example ended up looking the way it did. What exactly was the key
+            objective? The answer: we wanted to be able to attach a kind of tag
+            to each input element, that would tell it which one of the state
+            variables it should be associated with. In JavaScript, we can do
+            this simply using a string containing the name of the field, because
+            such a string allows us to access an arbitrary field of a JavaScript
+            object, allowing us to read and write to it. And that is exactly
+            what a Lens is. A Lens is simply an object (or value), that we can
+            store in a variable, and which enables us to specify which field of
+            a data-structure we want to access (giving us read/write access to
+            it).
+        </p>
+
+        <p>
+            But as we have seen, using a string to do this is brittle and unsafe
+            (and also inflexible, as we will see later on). So a better way to
+            represent lenses, is as a pair of two functions: a getter function,
+            and a setter function.
+        </p>
+
+        <p>
+            We will use the <a
+            href="https://github.com/gcanti/monocle-ts">monocle-ts</a> library
+            which has a nice Lens class. Let's take a look at the React state of
+            our form component again:
+        </p>
+
+<pre>
+<code class="language-typescript">
+interface Form3State {
+    firstName: string;
+    lastName: string;
+}
+</code>
+</pre>
+
+        <p>
+            We can use <a
+            href="https://github.com/gcanti/monocle-ts">monocle-ts</a> to create
+            a lens for the <code class="language-typescript">firstName</code>
+            field, and a lens for the <code
+            class="language-typescript">lastName</code>
+            field:
+        </p>
+
+<pre>
+<code class="language-typescript">
+const firstNameLens = Lens.fromProp&lt;Form3State&gt;()("firstName");
+const lastNameLens = Lens.fromProp&lt;Form3State&gt;()("lastName");
+</code>
+</pre>
+
+        <p>
+            Each of these lenses allows us to access the specific field within
+            the <code class="language-typescript">Form3State</code> object.
+            Let's play around with these lenses and do some getting and setting:
+        </p>
+
+<pre>
+<code class="language-typescript">
+> const milly: Form3State = { firstName: "Milly", lastName: "Smith" };
+
+> firstNameLens.get(milly);
+"Milly"
+
+> firstNameLens.set("Tilly")(milly);
+{ firstName: "Tilly", lastName: "Smith" }
+</code>
+</pre>
+
+        <p>
+            Notice that the lens <code class="language-typescript">set</code>
+            function actually returns another function: the returned function
+            takes our state and returns a new state (clone) with only the
+            specific field changed.
+        </p>
+
+        <p>
+            Also notice how the lens is completely type safe. For example, if we
+            try to set the first name to a number using our lens, then we get a
+            compile error. And if we try to use our lens to read the first name
+            out of some other invalid object then we also get a compile error.
+            (Try these out yourself!)
+        </p>
+
+        <p>
+            If you are confused right now, then I recommend that you play around
+            a bit with the <a
+            href="https://github.com/gcanti/monocle-ts">monocle-ts</a> library,
+            just do some simple gets and sets (no need to understand the more
+            advanced stuff). Basic lens usage really is quite simple, but you
+            may need a bit of hands-on practice in order for things to click.
+        </p>
+
+        <p>
+            Now time for the fun stuff! We will create a React component called
+            <code class="language-typescript">LensyTextInput</code> that can be
+            directly connected to any single state variable. Let's first look at
+            the code, then I will explain it:
+        </p> 
+
+<pre>
+<code class="language-typescript">
+interface LensyTextInputProps&lt;S&gt; {
+    component: React.Component&lt;unknown, S&gt;;
+    lens: Lens&lt;S, string&gt;;
+}
+
+function LensyTextInput&lt;S&gt;(props: LensyTextInputProps&lt;S&gt;): JSX.Element {
+    return (
+        &lt;&gt;
+            &lt;input
+                type="text"
+                value={props.lens.get(props.component.state)}
+                onChange={e =&gt; props.component.setState(props.lens.set(e.target.value))}
+            /&gt;
+            ({props.lens.get(props.component.state).length} chars)
+        &lt;/&gt;
+    );
+}
+</code>
+</pre>
+
+        <p>
+            Let's go through the above code. It is a React functional component,
+            with two props, and no internal state. The component is also a
+            generic component, taking a type parameter called <code
+            class="language-typescript">S</code>. This <code
+            class="language-typescript">S</code> represents the state type of
+            the parent component where it will be used. In our case,
+            <code class="language-typescript">S</code> will be our <code
+            class="language-typescript">FormState</code> interface (which
+            contains <code class="language-typescript">firstName</code> and
+            <code class="language-typescript">lastName</code> string fields).
+        </p>
+
+        <p>
+            <code class="language-typescript">LensyTextInput</code> has two
+            props. The first prop, <code
+            class="language-typescript">component</code>, is the React parent
+            component that the LensyTextInput will attach to. It needs this so
+            that it can read and update the parent component's state (when the
+            user types stuff). We will usually simply assign <code
+            class="language-typescript">this</code> to this prop (as you will
+            see below).
+        </p>
+
+        <p>
+            The second prop, <code class="language-typescript">lens</code> is
+            the lens used to specify which field this input should be attached
+            to. In our case, this will be either <code
+            class="language-typescript">firstNameLens</code> or
+            <code class="language-typescript">lastNameLens</code>. The <code
+            class="language-typescript">Lens</code> type has two type
+            parameters: the first type (<code
+            class="language-typescript">S</code>) specifies the type of the data
+            structure that we are working with, and the second one (<code
+            class="language-typescript">string</code>) specifies the type of the
+            field that the lens points to. Our <code
+            class="language-typescript">LensyTextInput</code> uses a regular
+            html input field, and so can only work with string values, therefore
+            it requires that the lens must be to a string value. (It is of
+            course possible to create other types of "lensy" React input
+            components, that have a different UI, and work with lenses of other
+            types, such as dates, times, booleans, numbers, numeric ranges,
+            colors, etc...)
+        </p>
+
+        <p>
+            <code class="language-typescript">LensyTextInput</code> creates a
+            regular html <code class="language-typescript">input</code> element.
+            In order to set its <code class="language-typescript">value</code>,
+            we use the lens getter to read the current value of the field (from
+            the parent component's state).
+        </p>
+
+        <p>
+            The <code class="language-typescript">onChange</code> is set to a
+            function that calls <code
+            class="language-typescript">setState</code> on the parent component.
+            Remember how the lens setter function actually returns a function?
+            This is incredibly useful here, since React's <a
+            href="https://reactjs.org/docs/react-component.html#setstate">setState</a>
+            function allows passing to it a function that transforms the old
+            state into an updated state. This matches perfectly with how lens
+            setters work: We call <code
+            class="language-typescript">props.lens.set</code> with the new value
+            of the field (from the input event), this returns a function that
+            transforms an <code class="language-typescript">S</code> to a new
+            <code class="language-typescript">S</code>, and this function is
+            used as the argument to the call to <code
+            class="language-typescript">setState</code> on the parent component.
+        </p>
+
+        <p>
+            Notice that we also decided to include our character counter display
+            inside the <code class="language-typescript">LensyTextInput</code>
+            component, but this is optional.
+        </p>
+
+        <p>
+            Now let's put this <code
+            class="language-typescript">LensyTextInput</code> component to use
+            in our form. Here is the complete code for our new form:
+        </p>
+
+<pre>
+<code class="language-typescript">
+interface Form3Props {
+    onSubmit: (firstName: string, lastName: string) =&gt; void;
+}
+
+interface Form3State {
+    firstName: string;
+    lastName: string;
+}
+
+const firstNameLens = Lens.fromProp&lt;Form3State&gt;()(&quot;firstName&quot;);
+const lastNameLens = Lens.fromProp&lt;Form3State&gt;()(&quot;lastName&quot;);
+
+class Form3 extends React.Component&lt;Form3Props, Form3State&gt; {
+    constructor(props: Form3Props) {
+        super(props);
+
+        this.state = {
+            firstName: &quot;&quot;,
+            lastName: &quot;&quot;
+        };
+    }
+
+    handleSubmitClick = (e: React.MouseEvent) =&gt; {
+        e.preventDefault();
+        this.props.onSubmit(this.state.firstName, this.state.lastName);
+    }
+
+    render() {
+        return (
+            &lt;form&gt;
+                &lt;label&gt;
+                    First Name:
+                    &lt;LensyTextInput component={this} lens={firstNameLens} /&gt;
+                &lt;/label&gt;
+                &lt;label&gt;
+                    Last Name:
+                    &lt;LensyTextInput component={this} lens={lastNameLens} /&gt;
+                &lt;/label&gt;
+                &lt;input
+                    type=&quot;submit&quot;
+                    disabled={this.state.firstName === &quot;&quot; || this.state.lastName === &quot;&quot;}
+                    onClick={this.handleSubmitClick}
+                /&gt;
+                &lt;pre&gt;
+                    {JSON.stringify(this.state, null, 2)}
+                &lt;/pre&gt;
+            &lt;/form&gt;
+        );
+    }
+}
+</code>
+</pre>
+
+        <p>
+            And here it is running, again working exactly the same as before:
+        </p>
+
+        <h3>Form3 <small>(using LensyTextInput)</small></h3>
+        <div id="form3">Loading Script...</div>
+
+        <p>
+            This is a lot cleaner. There is no duplicate code, and for each
+            input field we only need to specify once which state variable it is
+            associated with, leaving no room for error.
+        </p>
+
+        <p>
+            Notice that the code to detect whether or not to disable the submit
+            button is still the same as before, simply reading from the state.
+            This code doesn't have to care about the lenses, or even know that
+            they are being used elsewhere at all. (But later on, in Part 2 we
+            will see how the lenses can also help us do cool stuff with form
+            validation)
+        </p>
+
+        <p>
+            Let's move on. Up until now, we've been storing our <code
+            class="language-typescript">firstName</code> and
+            <code class="language-typescript">lastName</code> fields directly in
+            the root of the form state. Now we want to make things more
+            organized, and use the following <code
+            class="language-typescript">Person</code> interface:
+        </p>
+
+<pre>
+<code class="language-typescript">
+interface Person {
+    firstName: string;
+    lastName: string;
+}
+</code>
+</pre>
+
+        <p>
+            Our form state will now contain a single person:
+        </p>
+
+<pre>
+<code class="language-typescript">
+interface Form4State {
+    person: Person;
+}
+</code>
+</pre>
+
+        <p>
+            In addition to being more "organized", structuring our code this way
+            is often beneficial since we may have existing code that works on
+            the <code class="language-typescript">Person</code> data type, and
+            we want to be able to integrate with it.
+        </p>
+
+        <p>
+            We still want our form to behave the same, with two input fields
+            (for the first name and for the last name). One of the great things
+            about lenses, is that they compose, allowing you to easily access
+            and modify fields that are inside deeply nested data structures.
+        </p>
+
+        <p>
+            The best way to understand how this works is to see the full code.
+            The important parts are where we create the <code
+            class="language-typescript">LazyTextInput</code>s, giving each of
+            them a lens that is the composition of two lenses. Here is the full
+            code:
+        </p>
+
+<pre>
+<code class="language-typescript">
+interface Form4Props {
+    onSubmit: (firstName: string, lastName: string) =&gt; void;
+}
+
+interface Person {
+    firstName: string;
+    lastName: string;
+}
+
+interface Form4State {
+    person: Person;
+}
+
+const personFirstNameLens = Lens.fromProp&lt;Person&gt;()(&quot;firstName&quot;);
+const personLastNameLens = Lens.fromProp&lt;Person&gt;()(&quot;lastName&quot;);
+
+const personLens = Lens.fromProp&lt;Form4State&gt;()(&quot;person&quot;);
+
+class Form4 extends React.Component&lt;Form4Props, Form4State&gt; {
+    constructor(props: Form4Props) {
+        super(props);
+
+        this.state = {
+            person: {
+                firstName: &quot;&quot;,
+                lastName: &quot;&quot;
+            }
+        };
+    }
+
+    handleSubmitClick = (e: React.MouseEvent) =&gt; {
+        e.preventDefault();
+        this.props.onSubmit(this.state.person.firstName, this.state.person.lastName);
+    }
+
+    render() {
+        return (
+            &lt;form&gt;
+                &lt;label&gt;
+                    First Name:
+                    &lt;LensyTextInput
+                        component={this}
+                        lens={personLens.compose(personFirstNameLens)}
+                    /&gt;
+                &lt;/label&gt;
+                &lt;label&gt;
+                    Last Name:
+                    &lt;LensyTextInput
+                        component={this}
+                        lens={personLens.compose(personLastNameLens)}
+                    /&gt;
+                &lt;/label&gt;
+                &lt;input
+                    type=&quot;submit&quot;
+                    disabled={this.state.person.firstName === &quot;&quot; || this.state.person.lastName === &quot;&quot;}
+                    onClick={this.handleSubmitClick}
+                /&gt;
+                &lt;pre&gt;
+                    {JSON.stringify(this.state, null, 2)}
+                &lt;/pre&gt;
+            &lt;/form&gt;
+        );
+    }
+}
+</code>
+</pre>
+
+        <p>
+            And here it is below running. Notice how the <code
+            class="language-typescript">LazyTextInput</code> is able to modify
+            the fields even though they are nested. This is a good time to look
+            back at the code of "Form2". The technique used there would not work
+            at all with nested fields. This is another advantage that our Lens
+            technique has, beyond just type-safety.
+        </p>
+
+        <h3>Form4 <small>(using LazyTextInput and nested state structure)</small></h3>
+        <div id="form4">Loading Script...</div>
+
+        <p>
+            That was cool! But now let's take things even one step further and
+            do something truly mind-blowing.
+        </p>
+
+        <p>
+            What if, due to certain requirements, we must represent our state as
+            a single <code class="language-typescript">fullName</code> string
+            (maybe because that is how names are saved in some "Person" data
+            structure that is used all through-out our code), but we still want
+            to be able to show a UI with a form that has two separate fields for
+            the first name and last name.
+        </p>
+
+        <p>
+            Lenses allow us to easily accomplish this. Remember: a lens is just
+            a getter function and a setter function bundled together. So we can
+            create our own custom first name lens that will "focus" on the first
+            half of a string, and another custom last name lens that will
+            "focus" on the last half of a string.
+        </p>
+
+        <p>
+            Here is the lens for the first name:
+        </p>
+
+<pre>
+<code class="language-typescript">
+const firstNamePartLens: Lens&lt;string, string&gt; = new Lens&lt;string, string&gt;(
+    // Getter:
+    (fullName: string): string =&gt; {
+        const spaceIndex = fullName.lastIndexOf(" ");
+        if (spaceIndex &gt;= 0) {
+            return fullName.substr(0, spaceIndex);
+        } else {
+            return "";
+        }
+    },
+    // Setter:
+    (firstName: string) =&gt; (fullName: string): string =&gt; {
+        const spaceIndex = fullName.lastIndexOf(" ");
+        if (spaceIndex &gt;= 0) {
+            return firstName + fullName.substr(spaceIndex);
+        } else {
+            return firstName + " " + fullName;
+        }
+    }
+);
+</code>
+</pre>
+
+        <p>
+            And here is the lens for the last name:
+        </p>
+
+<pre>
+<code class="language-typescript">
+const lastNamePartLens: Lens&lt;string, string&gt; = new Lens&lt;string, string&gt;(
+    // Getter:
+    (fullName: string) =&gt; {
+        const spaceIndex = fullName.lastIndexOf(" ");
+        if (spaceIndex &gt;= 0) {
+            return fullName.substr(spaceIndex + 1);
+        } else {
+            return "";
+        }
+    },
+    // Setter:
+    (lastName: string) =&gt; (fullName: string): string =&gt; {
+        const spaceIndex = fullName.lastIndexOf(" ");
+        if (spaceIndex &gt;= 0) {
+            return fullName.substr(0, spaceIndex) + " " + lastName.trim();
+        } else {
+            return lastName.trim();
+        }
+    }
+);
+</code>
+</pre>
+
+        <p>
+            Now we can proceed to write our form, using the exact same
+            <code class="language-typescript">LensyTextInput</code> component
+            that we've been using all along, this time with our custom lenses:
+        </p>
+
+<pre>
+<code class="language-typescript">
+interface Form5Props {
+    onSubmit: (firstName: string, lastName: string) =&gt; void;
+}
+
+interface Form5State {
+    fullName: string;
+}
+
+const fullNameLens = Lens.fromProp&lt;Form5State&gt;()(&quot;fullName&quot;);
+
+class Form5 extends React.Component&lt;Form5Props, Form5State&gt; {
+    constructor(props: Form5Props) {
+        super(props);
+
+        this.state = {
+            fullName: &quot;&quot;
+        };
+    }
+
+    handleSubmitClick = (e: React.MouseEvent) =&gt; {
+        e.preventDefault();
+        this.props.onSubmit(
+            fullNameLens.compose(firstNamePartLens).get(this.state),
+            fullNameLens.compose(lastNamePartLens).get(this.state));
+    }
+
+    render() {
+        return (
+            &lt;form&gt;
+                &lt;label&gt;
+                    First Name:
+                    &lt;LensyTextInput
+                        component={this}
+                        lens={fullNameLens.compose(firstNamePartLens)}
+                    /&gt;
+                &lt;/label&gt;
+                &lt;label&gt;
+                    Last Name:
+                    &lt;LensyTextInput
+                        component={this}
+                        lens={fullNameLens.compose(lastNamePartLens)}
+                    /&gt;
+                &lt;/label&gt;
+                &lt;input
+                    type=&quot;submit&quot;
+                    disabled={
+                        fullNameLens.compose(firstNamePartLens).get(this.state) === &quot;&quot; ||
+                        fullNameLens.compose(lastNamePartLens).get(this.state) === &quot;&quot;}
+                    onClick={this.handleSubmitClick}
+                /&gt;
+                &lt;pre&gt;
+                    {JSON.stringify(this.state, null, 2)}
+                &lt;/pre&gt;
+            &lt;/form&gt;
+        );
+    }
+}
+</code>
+</pre>
+
+        <p>
+            And here is the result, make sure to play around with it:
+        </p>
+
+        <h3>Form5 <small>(using LazyTextInput with a magical lens)</small></h3>
+        <div id="form5">Loading Script...</div>
+
+        <p>
+            Isn't that cool? We are still using the exact same <code
+            class="language-typescript">LensyTextInput</code>, and it magically
+            is able to operate on slices of a string! If we weren't using
+            lenses, then it would probably not be possible to use a generic
+            input component the way we have been doing, and the string
+            manipulation code for extracting and updating the first/last name
+            would be strewn about a bunch of <code
+            class="language-typescript">onChange</code> callbacks and other
+            places and everything would be a hot mess.
+        </p>
+
+        <p>
+            The above technique can be very useful in many situations. For
+            example, we could make a color picker widget that operates on an
+            html color string (such as <code
+            class="language-typescript">"#fa33cb"</code>) and then we could
+            create lenses for the red/blue/green components. Then we could
+            easily create three different form inputs for each color component.
+            We could even create additional lenses that automatically convert to
+            the <a href="https://en.wikipedia.org/wiki/HSL_and_HSV">HSV</a>
+            components, and create additional input fields for these!
+        </p>
+
+        <p>
+            Finally, one last example to show you that the technique we've been
+            using does indeed scale nicely for forms that contain many fields,
+            while still being able to represent our state using structured data:
+        </p>
+
+<pre>
+<code class="language-typescript">
+interface Form6Props {
+    onSubmit: (firstName: string, lastName: string) =&gt; void;
+}
+
+interface Organization {
+    name: string;
+    ceo: Person;
+    janitor: Person;
+}
+
+interface Form6State {
+    specialName: string;
+    organization: Organization;
+}
+
+const organizationNameLens = Lens.fromProp&lt;Organization&gt;()(&quot;name&quot;);
+const organizationCeoLens = Lens.fromProp&lt;Organization&gt;()(&quot;ceo&quot;);
+const organizationJanitorLens = Lens.fromProp&lt;Organization&gt;()(&quot;janitor&quot;);
+
+const organizationLens = Lens.fromProp&lt;Form6State&gt;()(&quot;organization&quot;);
+const specialNameLens = Lens.fromProp&lt;Form6State&gt;()(&quot;specialName&quot;);
+
+class Form6 extends React.Component&lt;Form6Props, Form6State&gt; {
+    constructor(props: Form6Props) {
+        super(props);
+
+        this.state = {
+            specialName: &quot;Donut&quot;,
+            organization: {
+                name: &quot;&quot;,
+                ceo: {
+                    firstName: &quot;&quot;,
+                    lastName: &quot;Tribble&quot;
+                },
+                janitor: {
+                    firstName: &quot;Jimmy&quot;,
+                    lastName: &quot;Donut&quot;
+                }
+            }
+        };
+    }
+
+    handleSubmitClick = (e: React.MouseEvent) =&gt; {
+        e.preventDefault();
+        this.props.onSubmit(this.state.organization.ceo.firstName, this.state.organization.ceo.lastName);
+    }
+
+    render() {
+        return (
+            &lt;form&gt;
+                &lt;label&gt;
+                    Organization:
+                    &lt;LensyTextInput
+                        component={this}
+                        lens={organizationLens.compose(organizationNameLens)}
+                    /&gt;
+                &lt;/label&gt;
+                &lt;label&gt;
+                    Choose a Special Name:
+                    &lt;LensyTextInput
+                        component={this}
+                        lens={specialNameLens}
+                    /&gt;
+                &lt;/label&gt;
+                &lt;label&gt;
+                    CEO Last Name:
+                    &lt;LensyTextInput
+                        component={this}
+                        lens={organizationLens.compose(organizationCeoLens).compose(personLastNameLens)}
+                    /&gt;
+                &lt;/label&gt;
+                {(this.state.organization.ceo.lastName === this.state.specialName)
+                    ? &lt;div&gt;&lt;em&gt;The CEO has a special name!&lt;/em&gt;&lt;/div&gt;
+                    : null}
+                &lt;label&gt;
+                    Janitor First Name:
+                    &lt;LensyTextInput
+                        component={this}
+                        lens={organizationLens.compose(organizationJanitorLens).compose(personFirstNameLens)}
+                    /&gt;
+                &lt;/label&gt;
+                &lt;label&gt;
+                    Janitor Last Name:
+                    &lt;LensyTextInput
+                        component={this}
+                        lens={organizationLens.compose(organizationJanitorLens).compose(personLastNameLens)}
+                    /&gt;
+                &lt;/label&gt;
+                {(this.state.organization.janitor.lastName === this.state.specialName)
+                    ? &lt;div&gt;&lt;em&gt;The Janitor has a special name!&lt;/em&gt;&lt;/div&gt;
+                    : null}
+                &lt;pre&gt;
+                    {JSON.stringify(this.state, null, 2)}
+                &lt;/pre&gt;
+            &lt;/form&gt;
+        );
+    }
+}
+</code>
+</pre>
+
+        <h3>Form6 <small>(using LazyTextInput with nested state structure and lots of fields)</small></h3>
+        <div id="form6">Loading Script...</div>
+
+        <h3>Summary</h3>
+
+        <p>
+            Hopefully the above tour has given you an appreciation for the
+            wonder of lenses. They are such a simple construct, but if you
+            explore them with an open mind, they can fundamentally change the
+            way you approach programming. Keep your eyes open for new
+            opportunities where lenses can be applied!
+        </p>
+
+        <h2>Part 2 - Building a Form Validation Framework</h2>
+
+        <p>
+            Coming soon!
+        </p>
+    </article>
+
+
+
+
+	<script src="prism.js"></script>
+    <script src="react.development.js" crossorigin></script>
+    <script src="react-dom.development.js" crossorigin></script>
+
+    <script type="text/typescript" src="main.tsx"></script>
+
+    <script src="typescriptServices.js"></script>
+    <script src="transpiler.js"></script>
+</body>
+
+</html>
